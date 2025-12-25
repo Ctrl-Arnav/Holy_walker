@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Territory Walk Game",
+    "slug": "territory-walk-game",
+    "version": "0.0.1",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Territory Walk to access your location."
+        }
+      ]
+    ],
+    "android": {
+      "package": "com.territorywalks.game",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
+    }
+  }
+}
