@@ -57,7 +57,21 @@ export default function App() {
 
     return () => clearTimeout(timeout);
   }, []);
-  
+  const handleTeamSelected = (team, id) => {
+    setUserTeam(team);
+    setUserId(id);
+  };
+  const handleReset = async () => {
+    try {
+      await AsyncStorage.removeItem('@team');
+      await AsyncStorage.removeItem('@userId');
+      setUserTeam(null);
+      setUserId(null);
+    } catch (error) {
+      console.error('Error resetting:', error);
+    }
+  };
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
