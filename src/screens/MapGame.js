@@ -139,6 +139,7 @@ const MapGame = ({ userTeam, userId, onSwitchTeam }) => {
           userLocation={userLocation}
           userPath={userPath}
           regions={regions}
+          userTeam={userTeam}
           onReady={() => console.log('Map ready')}
         />
         <HUD
