@@ -31,22 +31,21 @@ const MapView = React.forwardRef(({
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
         <style>
           * { margin: 0; padding: 0; }
-          body { overflow: hidden; background: #1a1a1a; } /* Dark background for loading */
+          body { overflow: hidden; background: #1a1a1a; }
           #map { position: absolute; top: 0; bottom: 0; width: 100%; height: 100%; z-index: 1; }
 
-          /* SNOW ANIMATION - High Visibility */
           .snow-container {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none;
-            z-index: 9999; /* Forces snow to the very top */
+            z-index: 9999;
             overflow: hidden;
           }
           .snowflake {
             position: absolute;
             top: -20px;
             color: white;
-            text-shadow: 0 0 5px rgba(0,0,0,0.8); /* Adds shadow so it's visible on white maps */
+            text-shadow: 0 0 5px rgba(0,0,0,0.8);
             user-select: none;
             animation-name: fall;
             animation-timing-function: linear;
@@ -55,8 +54,7 @@ const MapView = React.forwardRef(({
           @keyframes fall {
             0% { transform: translateY(-5vh) translateX(0) rotate(0deg); opacity: 0; }
             10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(105vh) translateX(20px) rotate(360deg); opacity: 0; }
+            100% { transform: translateY(105vh) translateX(25px) rotate(360deg); opacity: 0; }
           }
         </style>
       </head>
@@ -65,9 +63,14 @@ const MapView = React.forwardRef(({
 
         <svg style="width:0; height:0; position:absolute;">
           <defs>
-            <pattern id="snowPattern" patternUnits="userSpaceOnUse" width="30" height="30">
-              <circle cx="10" cy="10" r="1.5" fill="rgba(255,255,255,0.4)" />
-              <circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.3)" />
+            <pattern id="patternRED" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="10" style="stroke:rgba(255,255,255,0.3); stroke-width:4" />
+            </pattern>
+            <pattern id="patternGREEN" patternUnits="userSpaceOnUse" width="15" height="15">
+              <rect x="5" y="5" width="5" height="5" fill="rgba(255,255,255,0.4)" transform="rotate(45 7.5 7.5)" />
+            </pattern>
+            <pattern id="patternBLUE" patternUnits="userSpaceOnUse" width="20" height="20">
+              <circle cx="5" cy="5" r="2.5" fill="rgba(255,255,255,0.5)" />
             </pattern>
           </defs>
         </svg>
@@ -103,12 +106,7 @@ const MapView = React.forwardRef(({
           function initializeMap() {
             if (mapInstance) return;
             mapInstance = L.map('map', { zoomControl: false }).setView([${centerLat}, ${centerLng}], 16);
-            
-            // DARK THEME MAP (Makes snow visible!)
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-              attribution: '&copy; CartoDB'
-            }).addTo(mapInstance);
-
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(mapInstance);
             createSnow();
             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'MAP_READY' }));
           }
@@ -134,13 +132,9 @@ const MapView = React.forwardRef(({
             }
 
             data.regions.forEach(region => {
-              const rColor = (teamConfigs[region.ownerTeam] || teamConfigs.RED).trailColor;
-              const style = { 
-                color: rColor, 
-                weight: 3, 
-                fillColor: 'url(#snowPattern)', 
-                fillOpacity: 0.7 
-              };
+              const team = region.ownerTeam || 'RED';
+              const rColor = (teamConfigs[team] || teamConfigs.RED).trailColor;
+              const style = { color: rColor, weight: 3, fillColor: 'url(#pattern' + team + ')', fillOpacity: 0.75 };
               if (regionLayers[region.id]) {
                 regionLayers[region.id].setStyle(style);
               } else {
@@ -164,14 +158,9 @@ const MapView = React.forwardRef(({
 
   return (
     <View style={styles.container}>
-      <WebView 
-        ref={webViewRef} 
-        originWhitelist={['*']} 
-        source={{ html: generateLeafletHTML() }}
+      <WebView ref={webViewRef} originWhitelist={['*']} source={{ html: generateLeafletHTML() }}
         onMessage={(e) => JSON.parse(e.nativeEvent.data).type === 'MAP_READY' && setMapReady(true)}
-        style={{ flex: 1 }} 
-        javaScriptEnabled={true} 
-      />
+        style={{ flex: 1 }} javaScriptEnabled={true} />
     </View>
   );
 });
