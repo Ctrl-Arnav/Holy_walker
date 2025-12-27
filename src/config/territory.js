@@ -7,26 +7,26 @@ export const COLLEGE_TERRITORY = {
   geometry: {
     type: "Polygon",
     coordinates: [[
-      [78.01866723778505, 27.18583446630805],
-      [78.01866723778505, 27.184595681635855],
-      [78.02262444070442, 27.184595681635855],
-      [78.02262444070442, 27.18583446630805],
-      [78.01866723778505, 27.18583446630805]
+      [78.01822303234167, 27.1864330440241],
+      [78.01822303234167, 27.184198996847442],
+      [78.02335645519469, 27.184198996847442],
+      [78.02335645519469, 27.1864330440241],
+      [78.01822303234167, 27.1864330440241]
     ]]
   }
 };
 export const TERRITORY_CENTER = {
-  latitude: 27.1852150,
-  longitude: 78.0206458
+  latitude: 27.18531602043577,
+  longitude: 78.02078974376818
 };
 export const TERRITORY_BOUNDS = {
-  minLat: 27.184595681635855,
-  maxLat: 27.18583446630805,
-  minLng: 78.01866723778505,
-  maxLng: 78.02262444070442
+  minLat: 27.184198996847442,
+  maxLat: 27.1864330440241,
+  minLng: 78.01822303234167,
+  maxLng: 78.02335645519469
 };
 export const TERRITORY_SIZE = {
-  widthMeters: 440,   // East-West
-  heightMeters: 137,  // North-South
-  areaSquareKm: 0.06
+  widthMeters: 508,   // East-West
+  heightMeters: 248,  // North-South
+  areaSquareKm: 0.13
 };

@@ -10,9 +10,9 @@ const TeamSelect = ({ onTeamSelected }) => {
   const [loading, setLoading] = useState(false);
 
   const teams = [
-    { name: 'RED', color: '#ff4444', label: '🔴 Red Team' },
-    { name: 'BLUE', color: '#4444ff', label: '🔵 Blue Team' },
-    { name: 'GREEN', color: '#44ff44', label: '🟢 Green Team' }
+    { name: 'RED', color: '#ff4444', label: '🔴 Santa' },
+    { name: 'BLUE', color: '#4444ff', label: '🔵 Snowman' },
+    { name: 'GREEN', color: '#44ff44', label: '🟢 Elf' }
   ];
   const handleTeamSelect = async (teamName) => {
     setSelectedTeam(teamName);
