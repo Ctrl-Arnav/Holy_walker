@@ -122,7 +122,7 @@ export class CaptureTracker {
       console.log('Loop: area too small');
       return false;
     }
-    console.log('✓✓✓ LOOP CAPTURE TRIGGERED - Region claimed! ✓✓✓');
+    console.log('LOOP CAPTURE TRIGGERED - Region claimed!');
     return true;
   }
   reset() {
