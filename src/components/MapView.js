@@ -60,21 +60,6 @@ const MapView = React.forwardRef(({
       </head>
       <body>
         <div class="snow-container" id="snow"></div>
-
-        <svg style="width:0; height:0; position:absolute;">
-          <defs>
-            <pattern id="patternRED" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)">
-              <line x1="0" y1="0" x2="0" y2="10" style="stroke:rgba(255,255,255,0.3); stroke-width:4" />
-            </pattern>
-            <pattern id="patternGREEN" patternUnits="userSpaceOnUse" width="15" height="15">
-              <rect x="5" y="5" width="5" height="5" fill="rgba(255,255,255,0.4)" transform="rotate(45 7.5 7.5)" />
-            </pattern>
-            <pattern id="patternBLUE" patternUnits="userSpaceOnUse" width="20" height="20">
-              <circle cx="5" cy="5" r="2.5" fill="rgba(255,255,255,0.5)" />
-            </pattern>
-          </defs>
-        </svg>
-
         <div id="map"></div>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
         <script>
@@ -82,16 +67,31 @@ const MapView = React.forwardRef(({
           let userMarker = null;
           let userPolyline = null;
           let regionLayers = {};
+          let emojiPatterns = {};
 
           const teamConfigs = {
-            RED: { icon: L.icon({ iconUrl: '${RED_PNG}', iconSize: [55, 55], iconAnchor: [27, 27] }), trailColor: '#ff4444' },
-            GREEN: { icon: L.icon({ iconUrl: '${GREEN_PNG}', iconSize: [55, 55], iconAnchor: [27, 27] }), trailColor: '#2ECC71' },
-            BLUE: { icon: L.icon({ iconUrl: '${BLUE_PNG}', iconSize: [60, 60], iconAnchor: [30, 30] }), trailColor: '#3498DB' }
+            RED: { emoji: '🎁', color: '#ff4444', icon: '${RED_PNG}' },
+            GREEN: { emoji: '🎄', color: '#2ECC71', icon: '${GREEN_PNG}' },
+            BLUE: { emoji: '☃️', color: '#3498DB', icon: '${BLUE_PNG}' }
           };
+
+          // Function to create a repeating emoji texture using Canvas
+          function createEmojiPattern(emoji) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 40;
+            canvas.height = 40;
+            const ctx = canvas.getContext('2d');
+            ctx.font = '20px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.globalAlpha = 0.3; // Make them subtle
+            ctx.fillText(emoji, 20, 20);
+            return ctx.createPattern(canvas, 'repeat');
+          }
 
           function createSnow() {
             const container = document.getElementById('snow');
-            for (let i = 0; i < 40; i++) {
+            for (let i = 0; i < 30; i++) {
               const flake = document.createElement('div');
               flake.className = 'snowflake';
               flake.innerHTML = '❄';
@@ -106,39 +106,65 @@ const MapView = React.forwardRef(({
           function initializeMap() {
             if (mapInstance) return;
             mapInstance = L.map('map', { zoomControl: false }).setView([${centerLat}, ${centerLng}], 16);
+            
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(mapInstance);
+
+            // Pre-create emoji patterns
+            emojiPatterns.RED = createEmojiPattern(teamConfigs.RED.emoji);
+            emojiPatterns.GREEN = createEmojiPattern(teamConfigs.GREEN.emoji);
+            emojiPatterns.BLUE = createEmojiPattern(teamConfigs.BLUE.emoji);
+
             createSnow();
             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'MAP_READY' }));
           }
 
           window.handleMapUpdate = function(data) {
             if (!mapInstance) initializeMap();
-            const config = teamConfigs[data.userTeam] || teamConfigs.RED;
+            
+            const team = data.userTeam || 'RED';
+            const config = teamConfigs[team];
 
+            // Update Marker
+            const leafIcon = L.icon({ iconUrl: config.icon, iconSize: [55, 55], iconAnchor: [27, 27] });
             if (data.userLocation && data.userLocation.latitude) {
               const pos = [data.userLocation.latitude, data.userLocation.longitude];
               if (!userMarker) {
-                userMarker = L.marker(pos, { icon: config.icon }).addTo(mapInstance);
+                userMarker = L.marker(pos, { icon: leafIcon }).addTo(mapInstance);
               } else {
-                userMarker.setLatLng(pos).setIcon(config.icon);
+                userMarker.setLatLng(pos).setIcon(leafIcon);
               }
               mapInstance.panTo(pos);
             }
 
+            // Update Trail
             if (data.userPath && data.userPath.length > 0) {
               if (userPolyline) mapInstance.removeLayer(userPolyline);
               userPolyline = L.polyline(data.userPath.map(p => [p.latitude, p.longitude]), 
-                { color: config.trailColor, weight: 5, opacity: 0.9, dashArray: '5, 10' }).addTo(mapInstance);
+                { color: config.color, weight: 5, opacity: 0.8, dashArray: '5, 10' }).addTo(mapInstance);
             }
 
+            // Update Regions with Emoji Fill
             data.regions.forEach(region => {
-              const team = region.ownerTeam || 'RED';
-              const rColor = (teamConfigs[team] || teamConfigs.RED).trailColor;
-              const style = { color: rColor, weight: 3, fillColor: 'url(#pattern' + team + ')', fillOpacity: 0.75 };
+              const rTeam = region.ownerTeam || 'RED';
+              const rColor = teamConfigs[rTeam].color;
+              
+              const style = { 
+                color: rColor, 
+                weight: 2, 
+                fillColor: rColor, // Fallback color
+                fillOpacity: 0.4
+              };
+
               if (regionLayers[region.id]) {
                 regionLayers[region.id].setStyle(style);
               } else {
-                regionLayers[region.id] = L.geoJSON(region.polygon, { style }).addTo(mapInstance);
+                const layer = L.geoJSON(region.polygon, { style }).addTo(mapInstance);
+                
+                // Hack to apply Canvas pattern to Leaflet Path
+                if (layer.getLayers()[0]._path) {
+                    layer.getLayers()[0]._path.setAttribute('fill', emojiPatterns[rTeam]);
+                }
+                regionLayers[region.id] = layer;
               }
             });
           };
@@ -158,9 +184,14 @@ const MapView = React.forwardRef(({
 
   return (
     <View style={styles.container}>
-      <WebView ref={webViewRef} originWhitelist={['*']} source={{ html: generateLeafletHTML() }}
+      <WebView 
+        ref={webViewRef} 
+        originWhitelist={['*']} 
+        source={{ html: generateLeafletHTML() }}
         onMessage={(e) => JSON.parse(e.nativeEvent.data).type === 'MAP_READY' && setMapReady(true)}
-        style={{ flex: 1 }} javaScriptEnabled={true} />
+        style={{ flex: 1 }} 
+        javaScriptEnabled={true} 
+      />
     </View>
   );
 });
