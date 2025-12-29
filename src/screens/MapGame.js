@@ -8,6 +8,7 @@ import { startLocationTracking } from '../utils/location';
 import { CaptureTracker } from '../utils/captureLogic';
 import { createCapturedRegion } from '../utils/regionManager';
 import { GiftBoxManager, GIFT_BOX_SPAWN_INTERVAL } from '../utils/giftBoxManager';
+import { ChristmasTreeManager, CHRISTMAS_TREE_SPAWN_INTERVAL } from '../utils/christmasTreeManager';
 
 const MapGame = ({ userTeam, userId, onSwitchTeam }) => {
   const [userLocation, setUserLocation] = useState(null);
@@ -15,11 +16,13 @@ const MapGame = ({ userTeam, userId, onSwitchTeam }) => {
   const [regions, setRegions] = useState([]);
   const [showVictory, setShowVictory] = useState(false);
   const [giftBoxes, setGiftBoxes] = useState([]);
+  const [christmasTrees, setChristmasTrees] = useState([]);
   const [collectedGift, setCollectedGift] = useState(null);
   const [territoryPoints, setTerritoryPoints] = useState(0);
   
   const captureTrackerRef = useRef(new CaptureTracker());
   const giftBoxManagerRef = useRef(new GiftBoxManager());
+  const christmasTreeManagerRef = useRef(new ChristmasTreeManager());
   const giftAnimValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -38,9 +41,19 @@ const MapGame = ({ userTeam, userId, onSwitchTeam }) => {
       }
     }, GIFT_BOX_SPAWN_INTERVAL);
 
+    const treeSpawnInterval = setInterval(() => {
+      const newTree = christmasTreeManagerRef.current.spawnChristmasTree();
+      if (newTree) {
+        console.log('New Christmas tree spawned:', newTree);
+        setChristmasTrees(christmasTreeManagerRef.current.getActiveTrees());
+      }
+    }, CHRISTMAS_TREE_SPAWN_INTERVAL);
+
     const cleanupInterval = setInterval(() => {
       giftBoxManagerRef.current.removeExpiredBoxes();
       setGiftBoxes(giftBoxManagerRef.current.getActiveGiftBoxes());
+      christmasTreeManagerRef.current.removeExpiredTrees();
+      setChristmasTrees(christmasTreeManagerRef.current.getActiveTrees());
     }, 5000);
 
     // Spawn initial gift boxes
@@ -49,12 +62,21 @@ const MapGame = ({ userTeam, userId, onSwitchTeam }) => {
       const box = giftBoxManagerRef.current.spawnGiftBox();
       console.log('Initial box spawned:', box);
     }
+    console.log('Spawning initial Christmas trees...');
+    for (let i = 0; i < 2; i++) {
+      const tree = christmasTreeManagerRef.current.spawnChristmasTree();
+      console.log('Initial tree spawned:', tree);
+    }
     const initialBoxes = giftBoxManagerRef.current.getActiveGiftBoxes();
+    const initialTrees = christmasTreeManagerRef.current.getActiveTrees();
     console.log('Total initial gift boxes:', initialBoxes.length, initialBoxes);
+    console.log('Total initial Christmas trees:', initialTrees.length, initialTrees);
     setGiftBoxes(initialBoxes);
+    setChristmasTrees(initialTrees);
 
     return () => {
       clearInterval(spawnInterval);
+      clearInterval(treeSpawnInterval);
       clearInterval(cleanupInterval);
     };
   }, []);
@@ -83,6 +105,12 @@ const MapGame = ({ userTeam, userId, onSwitchTeam }) => {
         const collectedBox = giftBoxManagerRef.current.checkCollection(loc.latitude, loc.longitude);
         if (collectedBox) {
           handleGiftBoxCollected(collectedBox);
+        }
+
+        // Check for Christmas tree collection
+        const collectedTree = christmasTreeManagerRef.current.checkCollection(loc.latitude, loc.longitude);
+        if (collectedTree) {
+          handleChristmasTreeCollected(collectedTree);
         }
       });
       return () => sub();
@@ -123,6 +151,33 @@ const MapGame = ({ userTeam, userId, onSwitchTeam }) => {
     ]).start(() => setCollectedGift(null));
   };
 
+  const handleChristmasTreeCollected = async (tree) => {
+    // Update trees display
+    setChristmasTrees(christmasTreeManagerRef.current.getActiveTrees());
+
+    // Award bonus territory points for trees (more valuable than gift boxes)
+    const treeBonus = 30;
+    await updateDoc(doc(db, 'users', userId), {
+      territoryPoints: increment(treeBonus)
+    });
+
+    // Show collection animation
+    setCollectedGift({ ...tree, reward: treeBonus, rarity: 'TREE' });
+    giftAnimValue.setValue(0);
+    Animated.sequence([
+      Animated.timing(giftAnimValue, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true
+      }),
+      Animated.timing(giftAnimValue, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true
+      })
+    ]).start(() => setCollectedGift(null));
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.mapContainer}>
@@ -132,6 +187,7 @@ const MapGame = ({ userTeam, userId, onSwitchTeam }) => {
           regions={regions} 
           userTeam={userTeam}
           giftBoxes={giftBoxes}
+          christmasTrees={christmasTrees}
         />
         
         <TouchableOpacity style={styles.switchTeamBtn} onPress={onSwitchTeam}>

@@ -8,6 +8,8 @@ const MapView = React.forwardRef(({
   userPath, 
   regions = [],
   userTeam = "RED",
+  giftBoxes = [],
+  christmasTrees = [],
   onReady 
 }, ref) => {
   const webViewRef = useRef(null);
@@ -21,7 +23,8 @@ const MapView = React.forwardRef(({
     const RED_PNG = "https://i.ibb.co/6cTgQpjf/Santa-Sprite.png";
     const GREEN_PNG = "https://i.ibb.co/0p2DnHtH/Elf-Sprite.png";
     const BLUE_PNG = "https://i.ibb.co/FkzRdQNS/Snwmn-Sprite.png";
-    const GIFTBOX_PNG = "https://i.ibb.co/wdV9Zj9/gift-box.png";
+    const GIFTBOX_PNG = "https://cdn.discordapp.com/emojis/797537734238797845.webp?size=128";
+    const CHRISTMAS_TREE_PNG = "https://media.discordapp.net/attachments/1453705547089051692/1455135266959524035/image-1.png.png?ex=69539fd2&is=69524e52&hm=78d6c1e9e717f56024a5e712acfdf5721fa372542ce477b00ecd84468a554170&=&format=webp&quality=lossless&width=80&height=80";
 
     return `
       <!DOCTYPE html>
@@ -73,6 +76,7 @@ const MapView = React.forwardRef(({
           let userPolyline = null;
           let regionLayers = {};
           let giftBoxMarkers = [];
+          let christmasTreeMarkers = [];
 
           const teamConfigs = {
             RED: { icon: L.icon({ iconUrl: '${RED_PNG}', iconSize: [50, 50], iconAnchor: [25, 25] }), trailColor: '#ff4444' },
@@ -84,6 +88,12 @@ const MapView = React.forwardRef(({
             iconUrl: '${GIFTBOX_PNG}',
             iconSize: [35, 35],
             iconAnchor: [17, 17]
+          });
+
+          const christmasTreeIcon = L.icon({
+            iconUrl: '${CHRISTMAS_TREE_PNG}',
+            iconSize: [40, 40],
+            iconAnchor: [20, 20]
           });
 
           function createSnow() {
@@ -160,6 +170,28 @@ const MapView = React.forwardRef(({
                 regionLayers[region.id] = L.geoJSON(region.polygon, { style: { color: rColor, weight: 2, fillOpacity: 0.3 } }).addTo(mapInstance);
               }
             });
+
+            // Update gift boxes
+            if (data.giftBoxes) {
+              giftBoxMarkers.forEach(marker => mapInstance.removeLayer(marker));
+              giftBoxMarkers = [];
+              data.giftBoxes.forEach(box => {
+                const marker = L.marker([box.lat, box.lng], { icon: giftBoxIcon }).addTo(mapInstance);
+                marker.bindPopup('🎁 Gift Box (' + box.rarity + ')');
+                giftBoxMarkers.push(marker);
+              });
+            }
+
+            // Update Christmas trees
+            if (data.christmasTrees) {
+              christmasTreeMarkers.forEach(marker => mapInstance.removeLayer(marker));
+              christmasTreeMarkers = [];
+              data.christmasTrees.forEach(tree => {
+                const marker = L.marker([tree.lat, tree.lng], { icon: christmasTreeIcon }).addTo(mapInstance);
+                marker.bindPopup('🎄 Christmas Tree');
+                christmasTreeMarkers.push(marker);
+              });
+            }
           };
 
           window.addEventListener('load', initializeMap);
@@ -171,9 +203,9 @@ const MapView = React.forwardRef(({
 
   useEffect(() => {
     if (webViewRef.current && mapReady) {
-      webViewRef.current.injectJavaScript(`window.handleMapUpdate(${JSON.stringify({ userLocation, userPath, regions, userTeam })}); true;`);
+      webViewRef.current.injectJavaScript(`window.handleMapUpdate(${JSON.stringify({ userLocation, userPath, regions, userTeam, giftBoxes, christmasTrees })}); true;`);
     }
-  }, [userLocation, userPath, regions, userTeam, mapReady]);
+  }, [userLocation, userPath, regions, userTeam, giftBoxes, christmasTrees, mapReady]);
 
   return (
     <View style={styles.container}>
