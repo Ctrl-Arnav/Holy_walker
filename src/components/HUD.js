@@ -30,15 +30,19 @@ const HUD = ({
   const territoryArea = turf.area(TERRITORY_POLYGON) || 1;
   const areaByTeam = { RED: 0, BLUE: 0, GREEN: 0 };
   
-  regions.forEach((r) => {
-    if (!r.polygon) return;
-    try {
-      const regionPoly = turf.polygon(r.polygon.coordinates);
-      const intersection = turf.intersect(regionPoly, TERRITORY_POLYGON);
-      if (!intersection) return;
-      areaByTeam[r.ownerTeam] += turf.area(intersection);
-    } catch (e) { console.warn('Area calc failed', e); }
-  });
+ regions.forEach((r) => {
+  if (!r.polygon || !r.polygon.coordinates) return; // Added extra safety check
+  try {
+    const regionPoly = turf.polygon(r.polygon.coordinates);
+    const intersection = turf.intersect(regionPoly, TERRITORY_POLYGON);
+    if (intersection) {
+      areaByTeam[r.ownerTeam] = (areaByTeam[r.ownerTeam] || 0) + turf.area(intersection);
+    }
+  } catch (e) {
+    // This prevents a single bad polygon from crashing the whole game
+    console.warn('Skipping malformed polygon:', r.id); 
+  }
+});
 
   const percent = {
     RED: Math.min(100, Math.round((areaByTeam.RED / territoryArea) * 1000) / 10),
